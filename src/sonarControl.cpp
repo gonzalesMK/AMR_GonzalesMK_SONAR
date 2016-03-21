@@ -9,11 +9,13 @@ int teste_left,teste_right; //usado para levar informações entre os sensores
                             // se o sensor estiver bloqueado teste = 1
 
 void cb_front(const std_msgs::Float32ConstPtr& dist) {
-   if (dist->data != 0) { // se o sensor marcar alguma coisa, o carro vai devagar
+   if (dist->data != 0)  // se o sensor marcar alguma coisa, o carro vai devagar
          vel.linear.x = 0.5;
-  } else vel.linear.x = 3;        // senão, ele corre
+   else 
+       vel.linear.x = 1;        // senão, ele corre
     
     if (!( teste_left || teste_right) ) vel.angular.z = 0; //se nenhum dos sensores laterais apitar, o carro vai reto
+    
     pub.publish(vel);
 }
 
