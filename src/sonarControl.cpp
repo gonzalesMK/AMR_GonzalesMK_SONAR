@@ -5,49 +5,67 @@
 
 ros::Publisher pub;
 geometry_msgs::Twist vel;
-int teste_left,teste_right; //usado para levar informações entre os sensores 
-                            // se o sensor estiver bloqueado teste = 1
+float teste_left,teste_right; //usado para levar informações entre os sensores 
+int contador = 0;                            // se o sensor estiver bloqueado teste = 1
 
 void cb_front(const std_msgs::Float32ConstPtr& dist) {
-   if (dist->data != 0)  // se o sensor marcar alguma coisa, o carro vai devagar
-         vel.linear.x = 0.5;
-   else 
-       vel.linear.x = 1;        // senão, ele corre
+    if (contador == 0){ 
+        if (dist->data > 0.2) {
+            vel.linear.x = - (1 - dist->data)*(1 - dist->data) * 20 ;
+        }else if(dist->data != 0 && dist->data < 0.2){
+             contador=1;
+        }
+         else {
+            vel.linear.x = 0 ;
+        }
+        if ( (teste_left < 0.5) && (teste_right < 0.5) && teste_right != 0 && teste_left != 0){
+            vel.angular.z = ( (1- teste_left) - ( 1- teste_right) ) * 3;
+        }else if ( (teste_right == 0) && (teste_left < 0.5) && teste_left != 0) {
+            vel.angular.z = -5;
+        } else if ( ( teste_right < 0.5) && (teste_left == 0 )&& teste_right != 0 ){
+            vel.angular.z = 5;
+        } else if (dist->data < 0.8 && teste_left < 0.8 && teste_left != 0 && ( dist->data !=0) ){
+            vel.angular.z = -15;
+        } else if ( dist->data < 0.8 && teste_right < 0.8 && teste_right != 0 && dist->data !=0 ){
+            vel.angular.z = 15;
+        }
+        else vel.angular.z = 0;
+        } 
+    else {
+        vel.linear.x = -30;
+        vel.angular.z = -30;   
+    }
+    if( dist->data > 0.5 || dist->data == 0){
+        contador = 0;
+    }
     
-    if (!( teste_left || teste_right) ) vel.angular.z = 0; //se nenhum dos sensores laterais apitar, o carro vai reto
+    std:: cout << "counter: " << contador << std::endl;
     
     pub.publish(vel);
+    
 }
 
 void cb_left(const std_msgs::Float32ConstPtr &dist )
-{
-    if ( dist->data != 0){         // se o sensor da direita apitar, o carro vira
-        vel.angular.z = -3 ;   
-        pub.publish(vel);
-        teste_left = 1;         // se o sensor apitar 
-    }  else teste_left = 0 ;
+{    if (dist->data !=0) {
+        teste_left= dist->data; 
+    } else teste_left = 0;
 }
 
-void cb_right(const std_msgs::Float32ConstPtr &dist ) // se o sensor do carro apitar, o carro vira
-{
-    if ( dist->data != 0){
-        vel.angular.z = 3 ;
-        pub.publish(vel);
-        teste_right=1;
-    } else teste_right =0;
-    
+void cb_right(const std_msgs::Float32ConstPtr &dist) // se o sensor do carro apitar, o carro vira
+{  if (dist->data !=0) {
+        teste_right = dist->data ; 
+    } else teste_right = 0;
 }
 
 int main(int argc, char **argv){
-    ros::init(argc, argv, "sonarController");
+    ros::init(argc, argv, "carrot_sonarController");
     ros::NodeHandle n;
     teste_left=0;
     teste_right=0;
-    ros::Subscriber sub_front = n.subscribe("/vrep/vehicle/frontSonar", 1, cb_front); //topico para o sensor da frente
-    ros::Subscriber sub_left = n.subscribe("/vrep/vehicle/leftSonar", 1, cb_left); //topico left
-    ros::Subscriber sub_right = n.subscribe("/vrep/vehicle/rightSonar", 1, cb_right); //topico para o sensor right
-    pub = n.advertise<geometry_msgs::Twist>("/sonarController", 1); //topico para comunicar com Kinect
-    
+    ros::Subscriber sub_front = n.subscribe("/vrep/carrot/frontSonar", 1, cb_front); 
+    ros::Subscriber sub_left = n.subscribe("/vrep/carrot/leftSonar", 1, cb_left); 
+    ros::Subscriber sub_right = n.subscribe("/vrep/carrot/rightSonar", 1, cb_right); 
+    pub = n.advertise<geometry_msgs::Twist>("/sonar", 1); 
     ros::spin();
     
 }
